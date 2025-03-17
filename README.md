@@ -24,13 +24,6 @@
 
 ## Установка
 
-### Установка из Chrome Web Store (рекомендуется)
-
-1. Перейдите в [Chrome Web Store](https://chrome.google.com/webstore/search/yandex%20tracker%20log%20viewer)
-2. Найдите расширение "Yandex Tracker Log Viewer"
-3. Нажмите кнопку "Установить"
-4. Подтвердите установку
-
 ### Установка в режиме разработчика
 
 1. Скачайте исходный код расширения из этого репозитория (ZIP-архив или через git clone)
