@@ -626,6 +626,13 @@ function processLogsPage() {
     try {
       logs = JSON.parse(jsonData);
       
+      // Проверяем, является ли ответ объектом с ошибкой 403
+      if (!Array.isArray(logs) && logs.statusCode === 403) {
+        console.log('Обнаружена ошибка 403, создаем страницу с сообщением о доступе');
+        createAccessDeniedPage(logs);
+        return;
+      }
+      
       // Проверяем, что это действительно массив логов
       if (!Array.isArray(logs)) {
         throw new Error('Данные не являются массивом');
@@ -1944,4 +1951,90 @@ function createAllLogsIcon() {
   return `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
     <path d="M0 2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v2h2a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-2H2a2 2 0 0 1-2-2V2zm5 10v2a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V6a1 1 0 0 0-1-1h-2v5a2 2 0 0 1-2 2H5zm6-8V2a1 1 0 0 0-1-1H2a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h2V6a2 2 0 0 1 2-2h5z"/>
   </svg>`;
+}
+
+// Функция для создания страницы с ошибкой доступа 403
+function createAccessDeniedPage(errorData) {
+  console.log('Создание страницы с ошибкой 403', errorData);
+  
+  // Получаем информацию из объекта ошибки
+  const statusCode = errorData.statusCode || 403;
+  const errorMessages = errorData.errorMessages || ['У вас недостаточно прав доступа.'];
+  const queue = errorData.errorsData?.queue || { key: 'неизвестно', display: 'неизвестно' };
+  const owner = errorData.errorsData?.owner || { 
+    display: 'администратору', 
+    email: '', 
+    login: '' 
+  };
+  
+  // Создаем контейнер для страницы с ошибкой
+  const container = document.createElement('div');
+  container.id = 'error-container';
+  container.style.fontFamily = 'Arial, sans-serif';
+  container.style.maxWidth = '800px';
+  container.style.margin = '0 auto';
+  container.style.padding = '20px';
+  
+  // Создаем заголовок и описание
+  const header = document.createElement('div');
+  header.innerHTML = `
+    <h1 style="color: #d32f2f; margin-bottom: 10px;">Ошибка ${statusCode}: Доступ запрещен</h1>
+    <div style="background-color: #fff8e1; border-left: 4px solid #ffa000; padding: 15px; margin-bottom: 20px;">
+      <p style="font-size: 16px; line-height: 1.5; margin: 0;">
+        ${errorMessages.join('<br>')}
+      </p>
+    </div>
+  `;
+  
+  // Создаем блок с информацией об очереди
+  const queueInfo = document.createElement('div');
+  queueInfo.style.backgroundColor = '#f5f5f5';
+  queueInfo.style.padding = '15px';
+  queueInfo.style.marginBottom = '20px';
+  queueInfo.style.borderRadius = '4px';
+  queueInfo.innerHTML = `
+    <h3 style="margin-top: 0; color: #333;">Информация об очереди</h3>
+    <p><strong>Название:</strong> ${queue.display}</p>
+    <p><strong>Ключ:</strong> ${queue.key}</p>
+  `;
+  
+  // Создаем блок с информацией о владельце, если она доступна
+  let ownerInfo = '';
+  if (owner && owner.email) {
+    const ownerEmail = owner.email;
+    const subject = encodeURIComponent(`Запрос доступа к логам очереди ${queue.key}`);
+    const body = encodeURIComponent(`Здравствуйте!\n\nПрошу предоставить мне доступ к логам триггеров очереди ${queue.key} (${queue.display}).\n\nС уважением,\n`);
+    
+    ownerInfo = `
+      <div style="background-color: #e8f5e9; padding: 15px; margin-bottom: 20px; border-radius: 4px;">
+        <h3 style="margin-top: 0; color: #333;">Как получить доступ</h3>
+        <p>Обратитесь к владельцу очереди: <strong>${owner.display}</strong> (${owner.login})</p>
+        <a href="mailto:${ownerEmail}?subject=${subject}&body=${body}" style="display: inline-block; background-color: #4caf50; color: white; padding: 10px 15px; text-decoration: none; border-radius: 4px; margin-top: 10px;">
+          📧 Отправить запрос владельцу
+        </a>
+      </div>
+    `;
+  }
+  
+  // Создаем кнопку для возврата назад
+  const backButton = document.createElement('div');
+  backButton.innerHTML = `
+    <button onclick="window.history.back()" style="background-color: #2196f3; color: white; border: none; padding: 10px 15px; border-radius: 4px; cursor: pointer; font-size: 14px;">
+      ← Вернуться назад
+    </button>
+  `;
+  
+  // Собираем все элементы вместе
+  container.appendChild(header);
+  container.appendChild(queueInfo);
+  if (ownerInfo) {
+    container.insertAdjacentHTML('beforeend', ownerInfo);
+  }
+  container.appendChild(backButton);
+  
+  // Заменяем содержимое страницы
+  document.body.innerHTML = '';
+  document.body.appendChild(container);
+  
+  console.log('Страница с ошибкой 403 создана');
 }
