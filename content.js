@@ -641,9 +641,9 @@ function processLogsPage() {
       // Проверяем, что в массиве есть хотя бы один элемент
       if (logs.length === 0) {
         // Создаем контейнер для пустого списка логов
-        const container = document.createElement("div");
-        container.id = "log-container";
-        
+    const container = document.createElement("div");
+    container.id = "log-container";
+
         // Создаем панель управления
         const controlPanel = createControlPanel([]);
         
@@ -730,7 +730,7 @@ function processLogsPage() {
     // Добавляем блоки с логами
     logs.forEach(log => {
       try {
-        container.appendChild(createLogBlock(log));
+      container.appendChild(createLogBlock(log));
       } catch (logError) {
         console.error("Ошибка при создании блока лога:", logError, log);
         // Добавляем блок с ошибкой вместо лога
@@ -751,7 +751,7 @@ function processLogsPage() {
     if (navPanel) document.body.appendChild(navPanel);
     document.body.appendChild(controlPanel);
     document.body.appendChild(container);
-    
+
     console.log('Страница логов успешно обработана');
   } catch (e) {
     console.error("Ошибка при обработке страницы логов:", e);
@@ -800,6 +800,10 @@ function createNavigationPanel(triggerId, queueKey, issueId) {
            class="nav-button" target="_blank">
           Вернуться к задаче
         </a>
+        <a href="https://st.yandex-team.ru/admin/queue/${queueKey}/automation/triggers/${triggerId}" 
+           class="nav-button nav-button-settings" target="_blank">
+          ${createSettingsIcon()} Настройки триггера
+        </a>
       </div>
     `;
   } else {
@@ -815,6 +819,10 @@ function createNavigationPanel(triggerId, queueKey, issueId) {
         <a href="https://st.yandex-team.ru/admin/queue/${queueKey}/automation/triggers" 
            class="nav-button" target="_blank">
           Список триггеров
+        </a>
+        <a href="https://st.yandex-team.ru/admin/queue/${queueKey}/automation/triggers/${triggerId}" 
+           class="nav-button nav-button-settings" target="_blank">
+          ${createSettingsIcon()} Настройки триггера
         </a>
       </div>
     `;
@@ -872,6 +880,14 @@ function createNavigationPanel(triggerId, queueKey, issueId) {
     .nav-button svg {
       width: 16px;
       height: 16px;
+    }
+
+    .nav-button-settings {
+      background-color: #6c757d;
+    }
+
+    .nav-button-settings:hover {
+      background-color: #5a6268;
     }
     
     @media (max-width: 768px) {
@@ -1714,13 +1730,13 @@ function initializePage() {
   // Добавляем небольшую задержку для полной загрузки страницы
   setTimeout(() => {
     // Загружаем состояние плагина
-    chrome.storage.local.get("pluginEnabled", (data) => {
+chrome.storage.local.get("pluginEnabled", (data) => {
       if (chrome.runtime.lastError) {
         console.error('Ошибка при получении состояния плагина:', chrome.runtime.lastError);
         return;
       }
       
-      pluginEnabled = data.pluginEnabled !== false; // По умолчанию плагин включён
+  pluginEnabled = data.pluginEnabled !== false; // По умолчанию плагин включён
       console.log('Загружено состояние плагина:', pluginEnabled);
       
       // Если это страница логов
@@ -1768,7 +1784,7 @@ function initializePage() {
       }
       
       // Обрабатываем страницу
-      processPage();
+  processPage();
       
       // Добавляем обработчик для проверки изменений URL каждые 300 мс
       if (!window._urlChangeInterval) {
@@ -1848,7 +1864,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   console.log('Получено сообщение:', message);
   
   try {
-    if (message.pluginEnabled !== undefined) {
+  if (message.pluginEnabled !== undefined) {
       const newState = message.pluginEnabled;
       console.log('Новое состояние плагина:', newState);
       
@@ -1873,7 +1889,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         
         // Отправляем ответ, что сообщение обработано
         sendResponse({ success: true, newState: newState, pageType: pageType });
-      } else {
+    } else {
         // Выключение плагина
         console.log('Выключение плагина');
         
@@ -2037,4 +2053,12 @@ function createAccessDeniedPage(errorData) {
   document.body.appendChild(container);
   
   console.log('Страница с ошибкой 403 создана');
+}
+
+// Функция для создания иконки настроек
+function createSettingsIcon() {
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+    <path d="M8 4.754a3.246 3.246 0 1 0 0 6.492 3.246 3.246 0 0 0 0-6.492zM5.754 8a2.246 2.246 0 1 1 4.492 0 2.246 2.246 0 0 1-4.492 0z"/>
+    <path d="M9.796 1.343c-.527-1.79-3.065-1.79-3.592 0l-.094.319a.873.873 0 0 1-1.255.52l-.292-.16c-1.64-.892-3.433.902-2.54 2.541l.159.292a.873.873 0 0 1-.52 1.255l-.319.094c-1.79.527-1.79 3.065 0 3.592l.319.094a.873.873 0 0 1 .52 1.255l-.16.292c-.892 1.64.901 3.434 2.541 2.54l.292-.159a.873.873 0 0 1 1.255.52l.094.319c.527 1.79 3.065 1.79 3.592 0l.094-.319a.873.873 0 0 1 1.255-.52l.292.16c1.64.893 3.434-.902 2.54-2.541l-.159-.292a.873.873 0 0 1 .52-1.255l.319-.094c1.79-.527 1.79-3.065 0-3.592l-.319-.094a.873.873 0 0 1-.52-1.255l.16-.292c.893-1.64-.902-3.433-2.541-2.54l-.292.159a.873.873 0 0 1-1.255-.52l-.094-.319zm-2.633.283c.246-.835 1.428-.835 1.674 0l.094.319a1.873 1.873 0 0 0 2.693 1.115l.291-.16c.764-.415 1.6.42 1.184 1.185l-.159.292a1.873 1.873 0 0 0 1.116 2.692l.319.094c.835.246.835 1.428 0 1.674l-.319.094a1.873 1.873 0 0 0-1.115 2.693l.16.291c.415.764-.42 1.6-1.185 1.184l-.291-.159a1.873 1.873 0 0 0-2.693 1.116l-.094.318c-.246.835-1.428.835-1.674 0l-.094-.319a1.873 1.873 0 0 0-2.692-1.115l-.292.16c-.764.415-1.6-.42-1.184-1.185l.159-.291A1.873 1.873 0 0 0 1.945 8.93l-.319-.094c-.835-.246-.835-1.428 0-1.674l.319-.094A1.873 1.873 0 0 0 3.06 4.377l-.16-.292c-.415-.764.42-1.6 1.185-1.184l.292.159a1.873 1.873 0 0 0 2.692-1.115l.094-.319z"/>
+  </svg>`;
 }
