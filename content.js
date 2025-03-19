@@ -336,6 +336,12 @@ function getPageType() {
     console.log('Определен тип страницы как logs по URL');
     return 'logs';
   }
+
+  // Проверяем, является ли страница редактированием триггера
+  if (url.includes('/automation/triggers/') && !url.includes('/webhooks/log')) {
+    console.log('Определен тип страницы как trigger-edit');
+    return 'trigger-edit';
+  }
   
   // Проверяем, является ли страница страницей истории задачи
   if (url.includes('/history')) {
@@ -343,7 +349,7 @@ function getPageType() {
     return 'history';
   }
   
-  // Проверяем, является ли страница страницей задачи (чтобы отследить вкладку истории)
+  // Проверяем, является ли страница страницей задачи
   if (url.match(/^https:\/\/st\.yandex-team\.ru\/[A-Z]+-\d+$/)) {
     console.log('Определен тип страницы как task');
     return 'task';
@@ -1615,19 +1621,15 @@ function processPage() {
   
   if (!pluginEnabled) {
     console.log('Плагин отключен');
-    
-    // Даже если плагин отключен, нам нужно удалить ссылки на логи
-    if (pageType === 'triggers') {
-      processTriggersPage();
-    }
-    
     return;
   }
 
-  if (pageType === 'triggers') {
+  if (pageType === 'trigger-edit') {
+    // Обработка страницы редактирования триггера
+    setupJsonEditor();
+  } else if (pageType === 'triggers') {
     // Обработка страницы триггеров
     processTriggersPage();
-    // Устанавливаем observer для отслеживания изменений
     setupMutationObserver();
   } else if (pageType === 'logs') {
     // Обработка страницы логов
@@ -1637,7 +1639,6 @@ function processPage() {
     processHistoryPage();
   } else if (pageType === 'task') {
     // Настраиваем наблюдатель за вкладками на странице задачи
-    console.log('Настройка наблюдателя за вкладками на странице задачи');
     setupHistoryTabObserver();
   } else {
     console.log('Неизвестный тип страницы, пропускаем обработку');
@@ -2142,4 +2143,89 @@ function setupHistoryObserver() {
   
   window._historyContentObserver = observer;
   console.log('Наблюдатель за историей настроен');
+}
+
+// Функция для настройки редактора JSON
+function setupJsonEditor() {
+  console.log('Настройка редактора JSON');
+  
+  // Находим текстовое поле с JSON
+  const textarea = document.querySelector('#action1RequestBodyControl');
+  if (!textarea) {
+    console.log('Текстовое поле JSON не найдено');
+    return;
+  }
+  
+  // Создаем контейнер для кнопки
+  const buttonContainer = document.createElement('div');
+  buttonContainer.className = 'json-editor-controls';
+  buttonContainer.style.marginTop = '8px';
+  
+  // Создаем кнопку Prettify
+  const button = document.createElement('button');
+  button.className = 'g-button g-button_view_flat-secondary g-button_size_m g-button_pin_round-round';
+  button.innerHTML = '<span class="g-button__text">Prettify JSON</span>';
+  buttonContainer.appendChild(button);
+  
+  // Добавляем контейнер после textarea
+  textarea.parentElement.parentElement.appendChild(buttonContainer);
+  
+  // Создаем контейнер для сообщений об ошибках
+  const errorContainer = document.createElement('div');
+  errorContainer.className = 'json-error-message';
+  errorContainer.style.display = 'none';
+  errorContainer.style.color = '#ff3b30';
+  errorContainer.style.fontSize = '13px';
+  errorContainer.style.marginTop = '4px';
+  textarea.parentElement.parentElement.appendChild(errorContainer);
+  
+  // Добавляем обработчик для валидации при вводе
+  textarea.addEventListener('input', validateJson);
+  
+  // Добавляем обработчик для форматирования
+  button.addEventListener('click', (e) => {
+    e.preventDefault();
+    try {
+      const json = JSON.parse(textarea.value);
+      textarea.value = JSON.stringify(json, null, 2);
+      hideJsonError();
+    } catch (e) {
+      showJsonError(e.message);
+    }
+  });
+  
+  // Выполняем начальную валидацию
+  if (textarea.value.trim()) {
+    validateJson({ target: textarea });
+  }
+}
+
+// Функция для валидации JSON
+function validateJson(e) {
+  const textarea = e.target;
+  try {
+    if (textarea.value.trim()) {
+      JSON.parse(textarea.value);
+      hideJsonError();
+    }
+  } catch (e) {
+    showJsonError(e.message);
+  }
+}
+
+// Функция для отображения ошибки JSON
+function showJsonError(message) {
+  const errorDiv = document.querySelector('.json-error-message');
+  if (errorDiv) {
+    errorDiv.textContent = `Ошибка JSON: ${message}`;
+    errorDiv.style.display = 'block';
+  }
+}
+
+// Функция для скрытия ошибки JSON
+function hideJsonError() {
+  const errorDiv = document.querySelector('.json-error-message');
+  if (errorDiv) {
+    errorDiv.style.display = 'none';
+  }
 }

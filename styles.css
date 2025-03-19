@@ -194,3 +194,30 @@ body {
       margin-bottom: 5px;
     }
   }
+
+  /* Стили для редактора JSON */
+  .json-editor-controls {
+    display: flex;
+    align-items: center;
+    margin-top: 8px;
+  }
+
+  .json-error-message {
+    color: #ff3b30;
+    font-size: 13px;
+    margin-top: 4px;
+    padding: 4px 8px;
+    border-radius: 4px;
+    background-color: rgba(255, 59, 48, 0.1);
+    display: none;
+  }
+
+  /* Стили для кнопки Prettify */
+  .json-editor-controls .g-button {
+    margin-right: 8px;
+  }
+
+  /* Подсветка ошибок в textarea */
+  .g-text-area__control.has-error {
+    border-color: #ff3b30 !important;
+  }
