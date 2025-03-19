@@ -1068,7 +1068,7 @@ function createErrorPageWithDateSelector() {
 }
 
 // Функция для инициализации наблюдателя за вкладками истории
-function setupHistoryTabObserver() {
+async function setupHistoryTabObserver() {
   console.log('Настройка наблюдателя за вкладками истории');
   
   // Отключаем старый observer, если он существует
@@ -1079,100 +1079,133 @@ function setupHistoryTabObserver() {
   }
   
   // Функция для поиска и обработки вкладки истории
-  function findAndProcessHistoryTab() {
+  async function findAndProcessHistoryTab() {
     console.log('Поиск вкладки "История" в DOM...');
     
-    // Ищем вкладки во всех возможных форматах
-    const tabs = document.querySelectorAll('.g-tabs__item, .tabs-menu__item');
-    console.log('Найдено вкладок:', tabs.length);
-    
-    // Для отладки выводим все найденные вкладки
-    tabs.forEach((tab, index) => {
-      const title = tab.textContent || '';
-      console.log(`Вкладка ${index + 1}: "${title.trim()}"`);
-    });
-    
-    // Флаг, чтобы отслеживать, нашли ли вкладку истории
-    let historyTabFound = false;
-    
-    // Проверяем, есть ли среди них вкладка "История"
-    tabs.forEach(tab => {
-      const tabTitle = tab.querySelector('.g-tabs__item-title, .tabs-menu__item-text') || tab;
-      const tabText = tabTitle.textContent || '';
+    try {
+      // Ждем появления вкладок
+      await waitForElement('.g-tabs__item, .tabs-menu__item');
       
-      if (tabText.includes('История') || tabText.includes('History')) {
-        console.log('Найдена вкладка "История":', tabText);
-        historyTabFound = true;
+      // Ищем вкладки во всех возможных форматах
+      const tabs = document.querySelectorAll('.g-tabs__item, .tabs-menu__item');
+      console.log('Найдено вкладок:', tabs.length);
+      
+      // Для отладки выводим все найденные вкладки
+      tabs.forEach((tab, index) => {
+        const title = tab.textContent || '';
+        console.log(`Вкладка ${index + 1}: "${title.trim()}"`);
+      });
+      
+      // Флаг, чтобы отслеживать, нашли ли вкладку истории
+      let historyTabFound = false;
+      
+      // Проверяем, есть ли среди них вкладка "История"
+      tabs.forEach(tab => {
+        const tabTitle = tab.querySelector('.g-tabs__item-title, .tabs-menu__item-text') || tab;
+        const tabText = tabTitle.textContent || '';
         
-        // Проверяем, не добавлен ли уже обработчик
-        if (!tab._historyTabObserverAdded) {
-          // Добавляем обработчик клика на вкладку
-          tab.addEventListener('click', () => {
-            console.log('Клик по вкладке "История"');
-            
-            // Запускаем обработку с небольшой задержкой, чтобы DOM успел обновиться
-            setTimeout(() => {
-              console.log('Запуск обработки истории после клика по вкладке');
-              
-              // Сбрасываем флаг обработки, чтобы история обрабатывалась заново при каждом клике
-              document.body.removeAttribute('data-history-processed');
-              processHistoryPage();
-            }, 500);
-          });
-          
-          // Отмечаем, что обработчик добавлен
-          tab._historyTabObserverAdded = true;
-          console.log('Добавлен обработчик клика для вкладки "История"');
-          
-          // Проверяем, активна ли вкладка сейчас
-          if (tab.classList.contains('g-tabs__item_active') || 
-              tab.classList.contains('tabs-menu__item_active') || 
-              tab.getAttribute('aria-selected') === 'true') {
-            console.log('Вкладка "История" активна, запускаем обработку');
-            setTimeout(() => {
-              processHistoryPage();
-            }, 500);
-          }
-        }
-      }
-    });
-    
-    // Если вкладка истории не найдена, ищем ее во всех возможных ссылках
-    if (!historyTabFound) {
-      console.log('Вкладка "История" не найдена среди стандартных вкладок, ищем в ссылках...');
-      
-      // Ищем все ссылки на странице
-      const links = document.querySelectorAll('a[href*="/history"]');
-      console.log('Найдено ссылок на историю:', links.length);
-      
-      links.forEach((link, index) => {
-        console.log(`Ссылка ${index + 1}: ${link.textContent.trim()} (${link.href})`);
-        
-        // Если ссылка ведет на историю текущей задачи
-        if (link.href.includes(window.location.pathname + '/history')) {
-          console.log('Найдена ссылка на историю задачи');
+        if (tabText.includes('История') || tabText.includes('History')) {
+          console.log('Найдена вкладка "История":', tabText);
+          historyTabFound = true;
           
           // Проверяем, не добавлен ли уже обработчик
-          if (!link._historyLinkObserverAdded) {
-            // Добавляем обработчик клика на ссылку
-            link.addEventListener('click', (e) => {
-              console.log('Клик по ссылке на историю');
+          if (!tab._historyTabObserverAdded) {
+            // Добавляем обработчик клика на вкладку
+            tab.addEventListener('click', async () => {
+              console.log('Клик по вкладке "История"');
               
-              // Если ссылка активна и обработчик клика сработал,
-              // запускаем обработку с задержкой для обновления DOM
-              setTimeout(() => {
-                console.log('Запуск обработки истории после клика по ссылке');
-                document.body.removeAttribute('data-history-processed');
-                processHistoryPage();
-              }, 500);
+              // Сбрасываем флаг обработки
+              document.body.removeAttribute('data-history-processed');
+              
+              // Запускаем обработку асинхронно
+              (async () => {
+                try {
+                  // Ждем появления контента истории
+                  await waitForElement('.history__value, .ep-history-diff-block__item');
+                  
+                  // Запускаем обработку
+                  processHistoryPage();
+                } catch (error) {
+                  console.error('Ошибка при обработке активной вкладки истории:', error);
+                }
+              })();
             });
             
             // Отмечаем, что обработчик добавлен
-            link._historyLinkObserverAdded = true;
-            console.log('Добавлен обработчик клика для ссылки на историю');
+            tab._historyTabObserverAdded = true;
+            console.log('Добавлен обработчик клика для вкладки "История"');
+            
+            // Проверяем, активна ли вкладка сейчас
+            if (tab.classList.contains('g-tabs__item_active') || 
+                tab.classList.contains('tabs-menu__item_active') || 
+                tab.getAttribute('aria-selected') === 'true') {
+              console.log('Вкладка "История" активна, запускаем обработку');
+              
+              // Запускаем обработку асинхронно
+              (async () => {
+                try {
+                  // Ждем появления контента истории
+                  await waitForElement('.history__value, .ep-history-diff-block__item');
+                  
+                  // Запускаем обработку
+                  processHistoryPage();
+                } catch (error) {
+                  console.error('Ошибка при обработке активной вкладки истории:', error);
+                }
+              })();
+            }
           }
         }
       });
+      
+      // Если вкладка истории не найдена, ищем ее во всех возможных ссылках
+      if (!historyTabFound) {
+        console.log('Вкладка "История" не найдена среди стандартных вкладок, ищем в ссылках...');
+        
+        // Ищем все ссылки на странице
+        const links = document.querySelectorAll('a[href*="/history"]');
+        console.log('Найдено ссылок на историю:', links.length);
+        
+        links.forEach((link, index) => {
+          console.log(`Ссылка ${index + 1}: ${link.textContent.trim()} (${link.href})`);
+          
+          // Если ссылка ведет на историю текущей задачи
+          if (link.href.includes(window.location.pathname + '/history')) {
+            console.log('Найдена ссылка на историю задачи');
+            
+            // Проверяем, не добавлен ли уже обработчик
+            if (!link._historyLinkObserverAdded) {
+              // Добавляем обработчик клика на ссылку
+              link.addEventListener('click', async (e) => {
+                console.log('Клик по ссылке на историю');
+                
+                // Если ссылка активна и обработчик клика сработал,
+                // запускаем обработку с задержкой для обновления DOM
+                setTimeout(async () => {
+                  console.log('Запуск обработки истории после клика по ссылке');
+                  document.body.removeAttribute('data-history-processed');
+                  
+                  try {
+                    // Ждем появления контента истории
+                    await waitForElement('.history__value, .ep-history-diff-block__item');
+                    
+                    // Запускаем обработку
+                    processHistoryPage();
+                  } catch (error) {
+                    console.error('Ошибка при обработке истории после клика по ссылке:', error);
+                  }
+                }, 500);
+              });
+              
+              // Отмечаем, что обработчик добавлен
+              link._historyLinkObserverAdded = true;
+              console.log('Добавлен обработчик клика для ссылки на историю');
+            }
+          }
+        });
+      }
+    } catch (error) {
+      console.error('Ошибка при поиске вкладки истории:', error);
     }
   }
   
@@ -1233,17 +1266,26 @@ function setupHistoryTabObserver() {
   window._historyTabObserver = observer;
   console.log('Наблюдатель за вкладками истории настроен');
   
-  // Также проверяем URL, возможно мы уже на странице истории
+  // Проверяем текущий URL и состояние страницы
   if (window.location.href.includes('/history')) {
     console.log('Страница истории уже открыта, запускаем обработку');
-    setTimeout(() => {
-      processHistoryPage();
-    }, 500);
+    // Запускаем обработку асинхронно
+    (async () => {
+      try {
+        // Ждем появления контента истории
+        await waitForElement('.history__value, .ep-history-diff-block__item');
+        
+        // Запускаем обработку
+        processHistoryPage();
+      } catch (error) {
+        console.error('Ошибка при обработке страницы истории:', error);
+      }
+    })();
   }
 }
 
 // Функция для обработки страницы истории задачи
-function processHistoryPage() {
+async function processHistoryPage() {
   console.log('Обработка страницы истории задачи');
   
   // Если страница уже обработана, ничего не делаем
@@ -1252,112 +1294,54 @@ function processHistoryPage() {
     return;
   }
   
-  // Добавляем отладочную информацию
-  console.log('DOM для истории:', document.body.innerHTML.substring(0, 500) + '...');
-  
-  // Получаем ключ очереди и ID задачи из URL
-  const urlParts = window.location.pathname.split('/');
-  const issueKey = urlParts[1]; // Например, CLOUDLAUNCH-305
-  if (!issueKey || !issueKey.includes('-')) {
-    console.log('Не удалось определить ключ задачи', issueKey);
-    return;
-  }
-  
-  const queueKey = issueKey.split('-')[0]; // Например, CLOUDLAUNCH
-  const issueNumber = issueKey.split('-')[1]; // Например, 305
-  console.log('Определен ключ очереди:', queueKey, 'и номер задачи:', issueNumber);
-  
-  // Регулярные выражения для поиска ID триггера
-  const triggerIdRegex = /\((\d+)\)/g;
-  
-  // Ищем все варианты блоков, где могут быть упоминания триггеров
-  const historyItems = document.querySelectorAll('.history__value, .ep-history-diff-block__item, .ep-history-diff-block__title + div');
-  console.log('Найдено блоков истории для проверки:', historyItems.length);
-  
-  let processedCount = 0;
-  
-  // Проверяем напрямую весь HTML на странице
-  const htmlContent = document.body.innerHTML;
-  if (htmlContent.includes('отправлен HTTP-запрос') || htmlContent.includes('Сработали триггеры')) {
-    console.log('Найдены текстовые упоминания триггеров в HTML страницы');
-  } else {
-    console.log('Не найдено упоминаний триггеров в HTML страницы');
-  }
-  
-  // Обрабатываем каждый блок, где могут быть упоминания триггеров
-  historyItems.forEach((item, index) => {
-    // Получаем текст элемента для проверки
-    const textContent = item.textContent || '';
-    console.log(`Блок истории ${index + 1}: ${textContent.substring(0, 100)}...`);
-    
-    // Проверяем, есть ли в тексте упоминания триггеров
-    if (textContent.includes('отправлен HTTP-запрос') || textContent.includes('Сработали триггеры')) {
-      console.log(`Найдено упоминание триггера в блоке ${index + 1}`);
-      
-      // Сохраняем оригинальный HTML
-      const originalHTML = item.innerHTML;
-      
-      // Найдем все ID триггеров в тексте
-      let newHTML = originalHTML;
-      let match;
-      
-      // Сбрасываем lastIndex для регулярного выражения
-      triggerIdRegex.lastIndex = 0;
-      
-      // Находим все ID триггеров в HTML
-      while ((match = triggerIdRegex.exec(originalHTML)) !== null) {
-        const triggerId = match[1];
-        const fullMatch = match[0]; // (123456)
-        
-        console.log(`Найден ID триггера: ${triggerId} в блоке ${index + 1}`);
-        
-        // Формируем URL для логов триггера (общий лог)
-        const generalLogUrl = `https://st-api.yandex-team.ru/v2/queues/${queueKey}/triggers/${triggerId}/webhooks/log?limit=100`;
-        
-        // Формируем URL для логов триггера в конкретной задаче
-        const issueSpecificLogUrl = `https://st-api.yandex-team.ru/v2/queues/${queueKey}/triggers/${triggerId}/webhooks/log?pretty&IssueId=${issueKey}`;
-        
-        // Создаем замену - делаем ID триггера кликабельным (ведет на логи в текущей задаче)
-        // и добавляем иконку для перехода к общей истории триггера
-        const replacement = `(<a href="${issueSpecificLogUrl}" target="_blank" class="trigger-id-link" data-trigger-id="${triggerId}" title="Просмотреть историю триггера в этой задаче">${triggerId}</a> <a href="${generalLogUrl}" target="_blank" class="trigger-log-link-inline-all" data-trigger-id="${triggerId}" title="Просмотреть общую историю триггера"><span class="trigger-log-icon-all">${createAllLogsIcon()}</span></a>)`;
-        
-        // Заменяем ID в HTML
-        newHTML = newHTML.replace(fullMatch, replacement);
-      }
-      
-      // Если были изменения, обновляем HTML
-      if (newHTML !== originalHTML) {
-        item.innerHTML = newHTML;
-        processedCount++;
-        
-        // Добавляем обработчики клика для ссылок
-        const triggerLinks = item.querySelectorAll('.trigger-log-link-inline, .trigger-log-link-inline-all');
-        triggerLinks.forEach(link => {
-          link.addEventListener('click', (e) => {
-            e.stopPropagation(); // Предотвращаем всплытие события
-          });
-        });
-      }
+  try {
+    // Ждем готовности страницы
+    if (!isPageReady()) {
+      console.log('Страница не готова, ожидаем загрузки...');
+      await waitForElement('.history__value, .ep-history-diff-block__item');
     }
-  });
-  
-  // Проверяем, нашли ли мы хоть одно упоминание триггера
-  if (processedCount === 0) {
-    console.log('Упоминаний триггеров не найдено. Проверяем новый формат...');
     
-    // Ищем все возможные контейнеры, где может быть текст
-    const allTextContainers = document.querySelectorAll('div, span, p');
-    console.log(`Найдено текстовых контейнеров для дополнительной проверки: ${allTextContainers.length}`);
+    // Получаем ключ очереди и ID задачи из URL
+    const urlParts = window.location.pathname.split('/');
+    const issueKey = urlParts[1]; // Например, CLOUDLAUNCH-305
+    if (!issueKey || !issueKey.includes('-')) {
+      console.log('Не удалось определить ключ задачи', issueKey);
+      return;
+    }
     
-    allTextContainers.forEach((container, index) => {
-      const textContent = container.textContent || '';
+    const queueKey = issueKey.split('-')[0]; // Например, CLOUDLAUNCH
+    const issueNumber = issueKey.split('-')[1]; // Например, 305
+    console.log('Определен ключ очереди:', queueKey, 'и номер задачи:', issueNumber);
+    
+    // Регулярные выражения для поиска ID триггера
+    const triggerIdRegex = /\((\d+)\)/g;
+    
+    // Ищем все варианты блоков, где могут быть упоминания триггеров
+    const historyItems = document.querySelectorAll(historySelectors.join(', '));
+    console.log('Найдено блоков истории для проверки:', historyItems.length);
+    
+    let processedCount = 0;
+    
+    // Проверяем напрямую весь HTML на странице
+    const htmlContent = document.body.innerHTML;
+    if (htmlContent.includes('отправлен HTTP-запрос') || htmlContent.includes('Сработали триггеры')) {
+      console.log('Найдены текстовые упоминания триггеров в HTML страницы');
+    } else {
+      console.log('Не найдено упоминаний триггеров в HTML страницы');
+    }
+    
+    // Обрабатываем каждый блок, где могут быть упоминания триггеров
+    historyItems.forEach((item, index) => {
+      // Получаем текст элемента для проверки
+      const textContent = item.textContent || '';
+      console.log(`Блок истории ${index + 1}: ${textContent.substring(0, 100)}...`);
       
+      // Проверяем, есть ли в тексте упоминания триггеров
       if (textContent.includes('отправлен HTTP-запрос') || textContent.includes('Сработали триггеры')) {
-        console.log(`Найдено упоминание триггера в контейнере ${index}`);
-        console.log(`Содержимое: ${textContent.substring(0, 100)}...`);
+        console.log(`Найдено упоминание триггера в блоке ${index + 1}`);
         
         // Сохраняем оригинальный HTML
-        const originalHTML = container.innerHTML;
+        const originalHTML = item.innerHTML;
         
         // Найдем все ID триггеров в тексте
         let newHTML = originalHTML;
@@ -1371,7 +1355,7 @@ function processHistoryPage() {
           const triggerId = match[1];
           const fullMatch = match[0]; // (123456)
           
-          console.log(`Найден ID триггера: ${triggerId} в контейнере ${index}`);
+          console.log(`Найден ID триггера: ${triggerId} в блоке ${index + 1}`);
           
           // Формируем URL для логов триггера (общий лог)
           const generalLogUrl = `https://st-api.yandex-team.ru/v2/queues/${queueKey}/triggers/${triggerId}/webhooks/log?limit=100`;
@@ -1389,11 +1373,11 @@ function processHistoryPage() {
         
         // Если были изменения, обновляем HTML
         if (newHTML !== originalHTML) {
-          container.innerHTML = newHTML;
+          item.innerHTML = newHTML;
           processedCount++;
           
           // Добавляем обработчики клика для ссылок
-          const triggerLinks = container.querySelectorAll('.trigger-log-link-inline, .trigger-log-link-inline-all');
+          const triggerLinks = item.querySelectorAll('.trigger-log-link-inline, .trigger-log-link-inline-all');
           triggerLinks.forEach(link => {
             link.addEventListener('click', (e) => {
               e.stopPropagation(); // Предотвращаем всплытие события
@@ -1402,58 +1386,61 @@ function processHistoryPage() {
         }
       }
     });
-  }
-  
-  // Если нашли и обработали триггеры, добавляем стили
-  if (processedCount > 0) {
-    // Добавляем стили для ссылок на триггеры в истории
-    const style = document.createElement('style');
-    style.textContent = `
-      .trigger-id {
-        font-weight: bold;
-      }
-      .trigger-id-link {
-        font-weight: bold;
-        color: #027bf3;
-        text-decoration: none;
-      }
-      .trigger-id-link:hover {
-        text-decoration: underline;
-      }
-      .trigger-log-link-inline,
-      .trigger-log-link-inline-all {
-        color: #027bf3;
-        text-decoration: none;
-        display: inline-flex;
-        align-items: center;
-        white-space: nowrap;
-        margin: 0 3px;
-      }
-      .trigger-log-icon-issue svg {
-        width: 12px;
-        height: 12px;
-        color: #027bf3;
-      }
-      .trigger-log-icon-all svg {
-        width: 12px;
-        height: 12px;
-        color: #4caf50;
-      }
-      .trigger-log-link-inline:hover,
-      .trigger-log-link-inline-all:hover {
-        text-decoration: underline;
-      }
-    `;
-    document.head.appendChild(style);
     
-    console.log(`Обработано ${processedCount} упоминаний триггеров`);
-  } else {
-    console.log('Упоминаний триггеров не найдено. Добавление ссылок не выполнено.');
+    // Если нашли и обработали триггеры, добавляем стили
+    if (processedCount > 0) {
+      // Добавляем стили для ссылок на триггеры в истории
+      const style = document.createElement('style');
+      style.textContent = `
+        .trigger-id {
+          font-weight: bold;
+        }
+        .trigger-id-link {
+          font-weight: bold;
+          color: #027bf3;
+          text-decoration: none;
+        }
+        .trigger-id-link:hover {
+          text-decoration: underline;
+        }
+        .trigger-log-link-inline,
+        .trigger-log-link-inline-all {
+          color: #027bf3;
+          text-decoration: none;
+          display: inline-flex;
+          align-items: center;
+          white-space: nowrap;
+          margin: 0 3px;
+        }
+        .trigger-log-icon-issue svg {
+          width: 12px;
+          height: 12px;
+          color: #027bf3;
+        }
+        .trigger-log-icon-all svg {
+          width: 12px;
+          height: 12px;
+          color: #4caf50;
+        }
+        .trigger-log-link-inline:hover,
+        .trigger-log-link-inline-all:hover {
+          text-decoration: underline;
+        }
+      `;
+      document.head.appendChild(style);
+      
+      console.log(`Обработано ${processedCount} упоминаний триггеров`);
+    } else {
+      console.log('Упоминаний триггеров не найдено. Добавление ссылок не выполнено.');
+    }
+    
+    // Помечаем страницу как обработанную
+    document.body.setAttribute('data-history-processed', 'true');
+    console.log('Обработка страницы истории завершена');
+    
+  } catch (error) {
+    console.error('Ошибка при обработке страницы истории:', error);
   }
-  
-  // Помечаем страницу как обработанную
-  document.body.setAttribute('data-history-processed', 'true');
-  console.log('Обработка страницы истории завершена');
 }
 
 // Функция для настройки MutationObserver для страницы триггеров
@@ -2061,4 +2048,98 @@ function createSettingsIcon() {
     <path d="M8 4.754a3.246 3.246 0 1 0 0 6.492 3.246 3.246 0 0 0 0-6.492zM5.754 8a2.246 2.246 0 1 1 4.492 0 2.246 2.246 0 0 1-4.492 0z"/>
     <path d="M9.796 1.343c-.527-1.79-3.065-1.79-3.592 0l-.094.319a.873.873 0 0 1-1.255.52l-.292-.16c-1.64-.892-3.433.902-2.54 2.541l.159.292a.873.873 0 0 1-.52 1.255l-.319.094c-1.79.527-1.79 3.065 0 3.592l.319.094a.873.873 0 0 1 .52 1.255l-.16.292c-.892 1.64.901 3.434 2.541 2.54l.292-.159a.873.873 0 0 1 1.255.52l.094.319c.527 1.79 3.065 1.79 3.592 0l.094-.319a.873.873 0 0 1 1.255-.52l.292.16c1.64.893 3.434-.902 2.54-2.541l-.159-.292a.873.873 0 0 1 .52-1.255l.319-.094c1.79-.527 1.79-3.065 0-3.592l-.319-.094a.873.873 0 0 1-.52-1.255l.16-.292c.893-1.64-.902-3.433-2.541-2.54l-.292.159a.873.873 0 0 1-1.255-.52l-.094-.319zm-2.633.283c.246-.835 1.428-.835 1.674 0l.094.319a1.873 1.873 0 0 0 2.693 1.115l.291-.16c.764-.415 1.6.42 1.184 1.185l-.159.292a1.873 1.873 0 0 0 1.116 2.692l.319.094c.835.246.835 1.428 0 1.674l-.319.094a1.873 1.873 0 0 0-1.115 2.693l.16.291c.415.764-.42 1.6-1.185 1.184l-.291-.159a1.873 1.873 0 0 0-2.693 1.116l-.094.318c-.246.835-1.428.835-1.674 0l-.094-.319a1.873 1.873 0 0 0-2.692-1.115l-.292.16c-.764.415-1.6-.42-1.184-1.185l.159-.291A1.873 1.873 0 0 0 1.945 8.93l-.319-.094c-.835-.246-.835-1.428 0-1.674l.319-.094A1.873 1.873 0 0 0 3.06 4.377l-.16-.292c-.415-.764.42-1.6 1.185-1.184l.292.159a1.873 1.873 0 0 0 2.692-1.115l.094-.319z"/>
   </svg>`;
+}
+
+// Функция для ожидания появления элемента в DOM
+function waitForElement(selector, timeout = 5000) {
+  return new Promise((resolve, reject) => {
+    console.log(`Ожидание элемента: ${selector}`);
+    
+    // Если элемент уже существует, возвращаем его
+    const element = document.querySelector(selector);
+    if (element) {
+      console.log(`Элемент ${selector} уже существует`);
+      resolve(element);
+      return;
+    }
+    
+    // Устанавливаем таймаут
+    const timeoutId = setTimeout(() => {
+      console.warn(`Таймаут ожидания элемента: ${selector}`);
+      reject(new Error(`Таймаут ожидания элемента: ${selector}`));
+    }, timeout);
+    
+    // Создаем наблюдатель за изменениями в DOM
+    const observer = new MutationObserver((mutations) => {
+      const element = document.querySelector(selector);
+      if (element) {
+        console.log(`Элемент ${selector} найден`);
+        observer.disconnect();
+        clearTimeout(timeoutId);
+        resolve(element);
+      }
+    });
+    
+    // Начинаем наблюдение
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true
+    });
+  });
+}
+
+// Функция для проверки готовности страницы
+function isPageReady() {
+  return document.readyState === 'complete' && 
+         !document.querySelector('.loading-indicator') &&
+         document.querySelector('.history__value, .ep-history-diff-block__item');
+}
+
+// Расширенный список селекторов для поиска элементов истории
+const historySelectors = [
+  '.history__value',
+  '.ep-history-diff-block__item',
+  '.ep-history-diff-block__title + div',
+  '.history-item',
+  '.history__item',
+  '[data-test-id="history-item"]'
+];
+
+// Функция для настройки наблюдателя за историей
+function setupHistoryObserver() {
+  console.log('Настройка наблюдателя за историей');
+  
+  // Отключаем старый observer, если он существует
+  if (window._historyContentObserver) {
+    window._historyContentObserver.disconnect();
+    window._historyContentObserver = null;
+    console.log('Отключен старый наблюдатель за историей');
+  }
+  
+  const observer = new MutationObserver((mutations) => {
+    for (const mutation of mutations) {
+      if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
+        const hasHistoryContent = Array.from(mutation.addedNodes).some(node => {
+          if (node.nodeType !== 1) return false;
+          return historySelectors.some(selector => 
+            node.matches(selector) || node.querySelector(selector)
+          );
+        });
+        
+        if (hasHistoryContent) {
+          console.log('Обнаружены новые элементы истории');
+          processHistoryPage();
+          break;
+        }
+      }
+    }
+  });
+  
+  observer.observe(document.body, {
+    childList: true,
+    subtree: true
+  });
+  
+  window._historyContentObserver = observer;
+  console.log('Наблюдатель за историей настроен');
 }

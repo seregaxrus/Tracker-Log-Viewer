@@ -1,20 +1,16 @@
 {
     "manifest_version": 3,
-    "name": "Yandex Tracker Log Viewer",
-    "version": "1.4.0",
-    "description": "Плагин для удобного просмотра логов HTTP-запросов в Яндекс Трекере.",
+    "name": "Yandex Tracker Trigger Log Viewer",
+    "version": "1.5.1",
+    "description": "Просмотр логов HTTP-запросов триггеров в Yandex Tracker",
     "permissions": [
-      "activeTab",
-      "scripting",
-      "storage"
+      "storage",
+      "activeTab"
     ],
     "host_permissions": [
-      "https://st-api.yandex-team.ru/*",
-      "https://st.yandex-team.ru/*"
+      "https://st.yandex-team.ru/*",
+      "https://st-api.yandex-team.ru/*"
     ],
-    "background": {
-      "service_worker": "background.js"
-    },
     "action": {
       "default_popup": "popup.html",
       "default_icon": {
@@ -23,17 +19,22 @@
         "128": "icon128.png"
       }
     },
+    "icons": {
+      "16": "icon16.png",
+      "48": "icon48.png",
+      "128": "icon128.png"
+    },
     "content_scripts": [
       {
         "matches": [
-          "https://st-api.yandex-team.ru/v2/queues/*/triggers/*/webhooks/log*",
-          "https://st.yandex-team.ru/admin/queue/*/automation/triggers",
-          "https://st.yandex-team.ru/admin/queue/*/automation/all",
-          "https://st.yandex-team.ru/*/history",
-          "https://st.yandex-team.ru/[A-Z]+-*"
+          "https://st.yandex-team.ru/*",
+          "https://st-api.yandex-team.ru/*"
         ],
         "js": ["content.js"],
         "css": ["styles.css"]
       }
-    ]
+    ],
+    "background": {
+      "service_worker": "background.js"
+    }
   }
