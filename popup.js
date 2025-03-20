@@ -67,11 +67,11 @@ function sendToggleMessage(newState) {
           });
         }, 1000);
         
-        console.log("Отправка сообщения в content script:", { pluginEnabled: newState });
+        console.log("Отправка сообщения в content script:", { action: "toggleEditor", enabled: newState });
         
         chrome.tabs.sendMessage(
           activeTab.id, 
-          { pluginEnabled: newState },
+          { action: "toggleEditor", enabled: newState },
           (response) => {
             clearTimeout(timeoutId);
             
@@ -84,9 +84,9 @@ function sendToggleMessage(newState) {
                 url: activeTab.url
               });
               resolve({ success: true, warning: errorMessage });
-            } else if (response && response.success) {
+            } else if (response && response.status === "success") {
               console.log("Сообщение успешно обработано:", response);
-              resolve(response);
+              resolve({ success: true });
             } else {
               console.warn("Неожиданный ответ от content script:", response);
               resolve({ 

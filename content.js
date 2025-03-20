@@ -2146,38 +2146,91 @@ function setupHistoryObserver() {
 }
 
 // Функция для настройки редактора JSON
-function setupJsonEditor() {
-  console.log('Настройка редактора JSON');
-  
-  // Находим текстовое поле с JSON
-  const textarea = document.querySelector('#action1RequestBodyControl');
-  if (!textarea) {
-    console.log('Текстовое поле JSON не найдено');
-    return;
+function setupJsonEditor(textarea) {
+  // Проверяем, не был ли уже создан редактор для этого textarea
+  if (textarea.nextElementSibling && textarea.nextElementSibling.classList.contains('ace_editor')) {
+    return; // Редактор уже существует, пропускаем
   }
+
+  // Проверяем, не был ли уже создан контейнер с кнопками
+  const existingContainer = textarea.parentElement.querySelector('.json-controls');
+  if (existingContainer) {
+    return; // Контейнер уже существует, пропускаем
+  }
+
+  // Создаем основной контейнер
+  const jsonControlsContainer = document.createElement('div');
+  jsonControlsContainer.className = 'json-controls action-component-webhook__field';
   
-  // Создаем контейнер для кнопки
-  const buttonContainer = document.createElement('div');
-  buttonContainer.className = 'json-editor-controls';
-  buttonContainer.style.marginTop = '8px';
+  // Создаем лейбл
+  const label = document.createElement('label');
+  label.className = 'tracker-form-label tracker-form-field-view__label json-controls__field-label action-component-webhook__field-label';
+  label.textContent = 'JSON Controls';
+  jsonControlsContainer.appendChild(label);
+  
+  // Создаем контейнер для значений
+  const fieldValue = document.createElement('div');
+  fieldValue.className = 'tracker-form-field-view__field json-controls__field-value action-component-webhook__field-value';
+  
+  // Создаем контейнер для кнопок и сообщений
+  const controlsContainer = document.createElement('div');
+  controlsContainer.className = 'json-controls__values';
+  controlsContainer.style.display = 'flex';
+  controlsContainer.style.gap = '10px';
+  controlsContainer.style.width = '100%';
+  controlsContainer.style.alignItems = 'stretch'; // Растягиваем элементы по высоте
   
   // Создаем кнопку Prettify
   const button = document.createElement('button');
   button.className = 'g-button g-button_view_flat-secondary g-button_size_m g-button_pin_round-round';
+  button.style.border = '1px solid var(--g-color-line-generic)';
+  button.style.borderRadius = 'var(--g-border-radius-m)';
+  button.style.backgroundColor = 'var(--g-color-base-background)';
+  button.style.padding = '8px 16px';
+  button.style.display = 'inline-flex';
+  button.style.alignItems = 'center';
+  button.style.justifyContent = 'center';
+  button.style.minWidth = '120px';
+  button.style.height = '36px'; // Фиксированная высота как у стандартных элементов управления
+  button.style.boxSizing = 'border-box';
   button.innerHTML = '<span class="g-button__text">Prettify JSON</span>';
-  buttonContainer.appendChild(button);
-  
-  // Добавляем контейнер после textarea
-  textarea.parentElement.parentElement.appendChild(buttonContainer);
   
   // Создаем контейнер для сообщений об ошибках
   const errorContainer = document.createElement('div');
   errorContainer.className = 'json-error-message';
   errorContainer.style.display = 'none';
-  errorContainer.style.color = '#ff3b30';
-  errorContainer.style.fontSize = '13px';
-  errorContainer.style.marginTop = '4px';
-  textarea.parentElement.parentElement.appendChild(errorContainer);
+  errorContainer.style.color = 'var(--g-color-text-danger)';
+  errorContainer.style.fontSize = 'var(--g-text-body-1-font-size)';
+  errorContainer.style.lineHeight = 'var(--g-text-body-1-line-height)';
+  errorContainer.style.fontFamily = 'var(--g-text-body-font-family)';
+  errorContainer.style.fontWeight = 'var(--g-text-body-font-weight)';
+  errorContainer.style.padding = '8px 12px';
+  errorContainer.style.backgroundColor = 'var(--g-color-base-danger-light)';
+  errorContainer.style.borderRadius = 'var(--g-border-radius-s)';
+  errorContainer.style.border = '1px solid var(--g-color-line-danger)';
+  errorContainer.style.flex = '1';
+  errorContainer.style.boxShadow = '0 1px 2px rgba(0, 0, 0, 0.1)';
+  errorContainer.style.boxSizing = 'border-box';
+  errorContainer.style.height = '36px'; // Та же высота, что и у кнопки
+  errorContainer.style.display = 'flex';
+  errorContainer.style.alignItems = 'center';
+  
+  // Собираем структуру
+  controlsContainer.appendChild(button);
+  controlsContainer.appendChild(errorContainer);
+  fieldValue.appendChild(controlsContainer);
+  jsonControlsContainer.appendChild(fieldValue);
+  
+  // Вставляем контейнер перед textarea
+  textarea.parentElement.insertBefore(jsonControlsContainer, textarea);
+  
+  // Находим родительский элемент webhook field
+  const webhookField = textarea.closest('.action-component-webhook__field');
+  
+  if (webhookField) {
+    // Вставляем наш контейнер после webhook field
+    webhookField.parentElement.insertBefore(jsonControlsContainer, webhookField.nextSibling);
+  }
   
   // Добавляем обработчик для валидации при вводе
   textarea.addEventListener('input', validateJson);
@@ -2229,3 +2282,54 @@ function hideJsonError() {
     errorDiv.style.display = 'none';
   }
 }
+
+// ... existing code ...
+function cleanupJsonEditor() {
+  console.log('Очистка редакторов...');
+  
+  // Удаляем все добавленные контейнеры с элементами управления
+  const jsonControls = document.querySelectorAll('.json-controls');
+  jsonControls.forEach(container => {
+    console.log('Удаляем контейнер JSON Controls:', container);
+    container.remove();
+  });
+  
+  // Восстанавливаем оригинальный вид текстовых областей
+  const textAreas = document.querySelectorAll('textarea');
+  textAreas.forEach(textarea => {
+    console.log('Обрабатываем textarea:', textarea);
+    
+    // Показываем textarea, если она была скрыта
+    if (textarea.style.display === 'none') {
+      textarea.style.display = '';
+    }
+    
+    // Удаляем связанный редактор, если он есть
+    const editorContainer = textarea.nextElementSibling;
+    if (editorContainer && editorContainer.classList.contains('ace_editor')) {
+      console.log('Удаляем редактор:', editorContainer);
+      editorContainer.remove();
+    }
+  });
+}
+
+// Обработчик сообщений от popup.js
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  if (request.action === "toggleEditor") {
+    console.log("Получено сообщение о переключении редактора:", request);
+    if (request.enabled) {
+      initializeJsonEditors();
+    } else {
+      cleanupJsonEditor();
+    }
+    sendResponse({status: "success"});
+    return true;
+  }
+});
+
+function initializeJsonEditors() {
+  const textAreas = document.querySelectorAll('textarea');
+  textAreas.forEach(setupJsonEditor);
+}
+
+// ... existing code ...
